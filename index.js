@@ -1,7 +1,11 @@
 const axios = require('axios')
 const { curry, forEach } = require('lodash')
 const fs = require('fs')
-const toMarkdown = require('to-markdown')
+
+// Simple sleep function
+function sleep(d){
+  for(var t = Date.now();Date.now() - t <= d;);
+}
 
 const headers = { Authorization: `Bearer ${process.argv[2]}` }
 const fetch = (url, opts = {}) =>
@@ -36,6 +40,11 @@ const fetchDocs = (children, folderName = 'output') => {
 
   forEach(folderIds, (folderId) => fetchThreads(folderId, folderName))
 
+  if(ids=="" || ids== null){
+    // In case of empty folders
+    return
+  }
+
   return fetch(`https://platform.quip.com/1/threads/?ids=${ids}`)
     .then(writeFiles(folderName))
 }
@@ -54,24 +63,38 @@ const fetchThreads = (folderId, parentDir) => {
 
 // writeFiles :: Object => void
 const writeFiles = curry((folderName, { data }) => {
-  forEach(data, (({ thread, html }) => {
-    const file = thread.title.replace(/\//g, '')
+
+  forEach(data, (({ thread, html}) => {
+
+    // Replace invalid characters with '_' on Windows. e.g. '/',':' 
+    const file = thread.title.replace(/\/|:/g, '_')
     const fileName = `${folderName}/${file}`
+  
 
-    fs.writeFile(`${fileName}.html`, html, (err) => {
-      if (err) return logErr(`❌ Failed to save ${fileName}.html. ${err}`)
+    if (fs.existsSync(`${fileName}.docx`)) {
+      //file exists
+      console.log(`✅ ${fileName}.docx already exists!`)
+    } else {
+      // Massive export requests will lead to HTTP 503 error, so we wait for a second here.
+      sleep(1000);
 
-      console.log(`✅ ${fileName}.html saved successfully`)
-    })
+      // Option 'arraybuffer' is very important here
+      fetch(`https://platform.quip.com/1/threads/${thread.id}/export/docx`, { responseType:"arraybuffer" } )
+      .then(writeDocx(fileName))
+    }
 
-    fs.writeFile(`${fileName}.md`, toMarkdown(html), (err) => {
-      if (err) return logErr(`❌ Failed to save ${fileName}.md. ${err}`)
-
-      console.log(`✅ ${fileName}.md saved successfully`)
-    })
   }))
 })
 
+
+const writeDocx = curry((fileName, { data }) => {
+  fs.writeFile(`${fileName}.docx`, data, 'binary', (err) => {
+    if (err) {
+      return logErr(`Failed to save ${fileName}.docx. ${err}`)
+    }
+    console.log(`✅ ${fileName}.docx saved successfully`)
+  })
+})
 // main :: () => void
 const main = () => {
   if (!process.argv[2]) {

@@ -1,3 +1,19 @@
+# Quip Mass Exporter for Docx file
+
+Modifications from the original version
+1. Remove html and md file export support.
+2. Fixed the invalid character issue on Windows.
+3. Skip downloading again if the file has already been exported.
+4. Fixed the empty folder issue.
+
+# Notice
+1. Follow the instructions from the original project.
+2. You can rerun this script safely if you encounter HTTP 503 errors. It will skip the files already downloaded.
+
+Below is the original README file.
+----
+
+
 # Quip Mass Exporter
 
 ## What is this?
@@ -5,8 +21,8 @@ The popular [Quip app](https://quip.com/) is great for note-taking and documents
 
 ## Installation
 1. `brew update && brew install node`
-1. `brew install yarn`
-1. `yarn install`
+2. `brew install yarn`
+3. `yarn install`
 
 ## Use
 1. Generate a personal access token for the Quip API here: https://quip.com/api/personal-token
